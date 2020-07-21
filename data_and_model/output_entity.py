@@ -1,11 +1,10 @@
-from transformers import DistilBertTokenizer
-
-from sqlnet.dbengine import DBEngine
 import json
+
 import torch
-import os
 import torch.utils.data
 from matplotlib.pylab import *
+from transformers import DistilBertTokenizer
+
 config = {}
 config["batch_size"] = 8
 config["data_path"] = "../data/"

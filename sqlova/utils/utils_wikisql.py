@@ -14,6 +14,8 @@ from matplotlib.pylab import *
 from .utils import generate_perm_inv
 from .utils import json_default_type_checker
 
+import os
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Load data -----------------------------------------------------------------------------------------------

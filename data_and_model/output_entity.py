@@ -1,9 +1,10 @@
-import json
+from transformers import DistilBertTokenizer
 
+import json
 import torch
 import torch.utils.data
-from matplotlib.pylab import *
-from transformers import DistilBertTokenizer
+import numpy as np
+import os
 
 config = {}
 config["batch_size"] = 8
@@ -76,12 +77,12 @@ def load_w2i_wemb(path_wikisql, bert=False):
     if bert:
         with open(os.path.join(path_wikisql, 'w2i_bert.json'), 'r') as f_w2i:
             w2i = json.load(f_w2i)
-        wemb = load(os.path.join(path_wikisql, 'wemb_bert.npy'), )
+        wemb = np.load(os.path.join(path_wikisql, 'wemb_bert.npy'), )
     else:
         with open(os.path.join(path_wikisql, 'w2i.json'), 'r') as f_w2i:
             w2i = json.load(f_w2i)
 
-        wemb = load(os.path.join(path_wikisql, 'wemb.npy'), )
+        wemb = np.load(os.path.join(path_wikisql, 'wemb.npy'), )
     return w2i, wemb
 
 # Load data -----------------------------------------------------------------------------------------------

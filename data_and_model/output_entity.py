@@ -1,4 +1,5 @@
-import bert.tokenization as tokenization
+from transformers import DistilBertTokenizer
+
 from sqlnet.dbengine import DBEngine
 import json
 import torch
@@ -117,8 +118,7 @@ count = 0
 count_agg_0 = 0
 count_agg_not_0 = 0
 
-tokenizer = tokenization.FullTokenizer(
-        vocab_file="./vocab_uncased_L-12_H-768_A-12.txt", do_lower_case=True)
+tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased', do_lower_case=True)
 
 
 def contains2(small_str,big_str):

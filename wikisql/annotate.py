@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-import os
-import records
-import ujson as json
-from stanza.nlp.corenlp import CoreNLPClient
-from tqdm import tqdm
 import copy
+import os
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+
+from stanza.server import CoreNLPClient
+import ujson as json
 from lib.common import count_lines, detokenize
 from lib.query import Query
-
+from tqdm import tqdm
 
 client = None
 

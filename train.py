@@ -4,23 +4,27 @@
 # Sep30, 2019
 
 
-import os, sys, argparse, re, json
-
-from matplotlib.pylab import *
-import torch.nn as nn
-import torch
-import torch.nn.functional as F
+import argparse
+import json
+import os
 import random as python_random
-# import torchvision.datasets as dsets
+import re
+import sys
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from matplotlib.pylab import *
 
 # BERT
-import bert.tokenization as tokenization
-from bert.modeling import BertConfig, BertModel
+from transformers import DistilBertConfig, DistilBertTokenizer, DistilBertModel
 
-from sqlova.utils.utils_wikisql import *
-from sqlova.utils.utils import load_jsonl
-from sqlova.model.nl2sql.wikisql_models import *
 from sqlnet.dbengine import DBEngine
+from sqlova.model.nl2sql.wikisql_models import *
+from sqlova.utils.utils import load_jsonl
+from sqlova.utils.utils_wikisql import *
+
+# import torchvision.datasets as dsets
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -31,17 +35,17 @@ def construct_hyper_param(parser):
     parser.add_argument('--infer_loop', default=False)
 
     parser.add_argument("--trained", default=False)
-    
+
     parser.add_argument('--fine_tune',
                         default=True,
                         help="If present, BERT is trained.")
-    
+
     parser.add_argument('--tepoch', default=200, type=int)
     parser.add_argument("--bS", default=8, type=int,
                         help="Batch size")
     parser.add_argument("--accumulate_gradients", default=1, type=int,
                         help="The number of accumulation of backpropagation to effectivly increase the batch size.")
-    
+
 
     parser.add_argument("--model_type", default='Seq2SQL_v1', type=str,
                         help="Type of model.")
@@ -117,20 +121,17 @@ def get_bert(BERT_PT_PATH, bert_type, do_lower_case, no_pretraining):
     vocab_file = os.path.join(BERT_PT_PATH, f'vocab_{bert_type}.txt')
     init_checkpoint = os.path.join(BERT_PT_PATH, f'pytorch_model_{bert_type}.bin')
 
-    bert_config = BertConfig.from_json_file(bert_config_file)
-    tokenizer = tokenization.FullTokenizer(
-        vocab_file=vocab_file, do_lower_case=do_lower_case)
-    bert_config.print_status()
-
-    model_bert = BertModel(bert_config)
+    distil_bert_config = DistilBertConfig.from_json_file(bert_config_file)
+    tokenizer = DistilBertTokenizer(distil_bert_config, do_lower_case=do_lower_case)
+    distil_model_bert = DistilBertModel(distil_bert_config)
     if no_pretraining:
         pass
     else:
-        model_bert.load_state_dict(torch.load(init_checkpoint, map_location='cpu'))
+        distil_model_bert.load_state_dict(torch.load(init_checkpoint, map_location='cpu'))
         print("Load pre-trained parameters.")
-    model_bert.to(device)
+    distil_model_bert.to(device)
 
-    return model_bert, tokenizer, bert_config
+    return distil_model_bert, tokenizer, distil_bert_config
 
 
 def get_opt(model, model_bert, fine_tune):

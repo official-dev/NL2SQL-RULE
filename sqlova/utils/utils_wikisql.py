@@ -3,24 +3,16 @@
 
 # Wonseok Hwang
 
-import os, json
-import random as rd
+import json
 from copy import deepcopy
 
-from matplotlib.pylab import *
-
 import torch
-import torchvision.datasets as dsets
 import torch.nn as nn
 import torch.nn.functional as F
-
+from matplotlib.pylab import *
 
 from .utils import generate_perm_inv
 from .utils import json_default_type_checker
-
-from .wikisql_formatter import get_squad_style_ans
-
-
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

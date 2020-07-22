@@ -266,13 +266,13 @@ class Seq2SQL_v1(nn.Module):
                 prob_conds11 = prob_w[b, idxs11[0], idxs11[1], idxs11[2] ]
 
                 # test execution
-                # print(nlu[b])
-                # print(tb[b]['id'], tb[b]['types'], pr_sc[b], pr_sa[b], [conds11])
-                pr_ans = engine.execute(tb[b]['id'], pr_sc[b], pr_sa[b], [conds11])
-                if bool(pr_ans):
+                print(nlu[b])
+                print(tb[b]['id'], tb[b]['types'], pr_sc[b], pr_sa[b], [conds11])
+#                 pr_ans = engine.execute(tb[b]['id'], pr_sc[b], pr_sa[b], [conds11])
+#                 if bool(pr_ans):
                     # pr_ans is not empty!
-                    conds_max1.append(conds11)
-                    prob_conds_max1.append(prob_conds11)
+                conds_max1.append(conds11)
+                prob_conds_max1.append(prob_conds11)
             conds_max.append(conds_max1)
             prob_conds_max.append(prob_conds_max1)
 

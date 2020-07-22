@@ -178,6 +178,9 @@ def get_models(args, BERT_PT_PATH, trained=False, path_model_bert=None, path_mod
     model = model.to(device)
 
     if trained:
+        print("Loading trained bert model from ", path_model_bert)
+
+        print("Loading trained model from ", path_model)
         assert path_model_bert != None
         assert path_model != None
 
@@ -601,7 +604,7 @@ def infer(nlp, nlu1,
     # I know it is of against the DRY principle but to minimize the risk of introducing bug w, the infer function introuced.
     model.eval()
     model_bert.eval()
-    engine = DBEngine(os.path.join(path_db, f"{db_name}.db"))
+#     engine = DBEngine(os.path.join(path_db, f"{db_name}.db"))
 
     # Get inputs
     nlu = [nlu1]
@@ -609,7 +612,7 @@ def infer(nlp, nlu1,
     nlu_t1 = tokenize_corenlp_direct_version(nlp, nlu1)
     nlu_t = [nlu_t1]
 
-    tb1 = data_table[0]
+    tb1 = data_table
     hds1 = tb1['header']
     tb = [tb1]
     hds = [hds1]
@@ -621,10 +624,13 @@ def infer(nlp, nlu1,
                         num_out_layers_n=num_target_layers, num_out_layers_h=num_target_layers)
 
     prob_sca, prob_w, prob_wn_w, pr_sc, pr_sa, pr_wn, pr_sql_i = model.beam_forward(wemb_n, l_n, wemb_h, l_hpu,
-                                                                                    l_hs, engine, tb,
+                                                                                    l_hs, None, tb,
                                                                                     nlu_t, nlu_tt,
                                                                                     tt_to_t_idx, nlu,
-                                                                                    beam_size=beam_size)
+                                                                                    beam_size=beam_size,
+                                                                                   
+                                                                                    knowledge=[max(l_n) * [0]],
+                                                                                    knowledge_header=[max(l_hs) * [0]])
 
     # sort and generate
     pr_wc, pr_wo, pr_wv, pr_sql_i = sort_and_generate_pr_w(pr_sql_i)
@@ -632,6 +638,7 @@ def infer(nlp, nlu1,
         raise EnvironmentError
     pr_sql_q1 = generate_sql_q(pr_sql_i, [tb1])
     pr_sql_q = [pr_sql_q1]
+    print(pr_sql_q1)
 
     try:
         pr_ans, _ = engine.execute_return_query(tb[0]['id'], pr_sc[0], pr_sa[0], pr_sql_i[0]['conds'])
@@ -639,21 +646,21 @@ def infer(nlp, nlu1,
         pr_ans = ['Answer not found.']
         pr_sql_q = ['Answer not found.']
 
-    if show_answer_only:
-        print(f'Q: {nlu[0]}')
-        print(f'A: {pr_ans[0]}')
-        print(f'SQL: {pr_sql_q}')
+#     if show_answer_only:
+#         print(f'Q: {nlu[0]}')
+#         print(f'A: {pr_ans[0]}')
+#         print(f'SQL: {pr_sql_q}')
 
-    else:
-        print(f'START ============================================================= ')
-        print(f'{hds}')
-        if show_table:
-            print(engine.show_table(table_name))
-        print(f'nlu: {nlu}')
-        print(f'pr_sql_i : {pr_sql_i}')
-        print(f'pr_sql_q : {pr_sql_q}')
-        print(f'pr_ans: {pr_ans}')
-        print(f'---------------------------------------------------------------------')
+#     else:
+    print(f'START ============================================================= ')
+    print(f'{hds}')
+    if show_table:
+        print(engine.show_table(table_name))
+    print(f'nlu: {nlu}')
+    print(f'pr_sql_i : {pr_sql_i}')
+    print(f'pr_sql_q : {pr_sql_q}')
+    print(f'pr_ans: {pr_ans}')
+    print(f'---------------------------------------------------------------------')
 
     return pr_sql_i, pr_ans
 
@@ -683,17 +690,24 @@ if __name__ == '__main__':
 
     ## 3. Load data
 
-    train_data, train_table, dev_data, dev_table, train_loader, dev_loader =\
-        get_data(path_wikisql, args)
-    # test_data, test_table = load_wikisql_data(path_wikisql, mode='test', toy_model=args.toy_model, toy_size=args.toy_size, no_hs_tok=True)
-    # test_loader = torch.utils.data.DataLoader(
-    #     batch_size=args.bS,
-    #     dataset=test_data,
-    #     shuffle=False,
-    #     num_workers=4,
-    #     collate_fn=lambda x: x  # now dictionary values are not merged!
-    # )
-    ## 4. Build & Load models
+    train_data, train_table, dev_data, dev_table, train_loader, dev_loader = get_data(path_wikisql, args)
+#     import json
+#     for iB, t in enumerate(dev_loader):
+#         with open("dummy.txt", "w") as f:
+#             json.dump(t, f)
+#         print(iB)
+#         break
+    
+    
+#     test_data, test_table = load_wikisql_data(path_wikisql, mode='test', toy_model=args.toy_model, toy_size=args.toy_size, no_hs_tok=True)
+#     test_loader = torch.utils.data.DataLoader(
+#         batch_size=args.bS,
+#         dataset=test_data,
+#         shuffle=False,
+#         num_workers=4,
+#         collate_fn=lambda x: x  # now dictionary values are not merged!
+#     )
+    # 4. Build & Load models
     if not args.trained:
         model, model_bert, tokenizer, bert_config = get_models(args, BERT_PT_PATH)
     else:
@@ -777,16 +791,21 @@ if __name__ == '__main__':
 
         nlp =  stanza.Pipeline(lang='en', processors='tokenize')
 
-        nlu1 = "Which company have more than 100 employees?"
+        
         path_db = './data_and_model'
         db_name = 'ctable'
-        data_table = load_jsonl('./data_and_model/ctable.tables.jsonl')
+        data_table = {
+                "id": "Contacts",
+                "header": ['Contact Owner', 'First Name', 'Last Name', 'Lead Source', 'Account Name', 'Salutation', 'Email', 'Full Name', 'Phone', 'Vendor Name', 'Mobile', 'Department', 'Title', 'Home Phone', 'Fax', 'Other Phone', 'Date of Birth', 'Email Opt Out', 'Tag', 'Created By', 'Reports To', 'Secondary Email', 'Skype ID', 'Twitter', 'Modified By', 'Created Time', 'Modified Time', 'test', 'NUmber_non Encrypted', 'Number Encrypted', 'Reporting To', 'Last Activity Time', 'Lead Score', 'Is Record Duplicate', 'Territories', 'Data Source', 'Unsubscribed Mode', 'test11 Prediction', 'Unsubscribed Time', 'Mailing Street', 'Other Street', 'Mailing City', 'Other City', 'Mailing State', 'Other State', 'Mailing Zip', 'Other Zip', 'Mailing Country', 'Other Country', 'Description', 'Days Visited', 'Average Time Spent (Minutes)', 'Number Of Chats', 'Last Visited Time', 'First Visited Time', 'First Visited URL', 'Referrer', 'Visitor Score', 'Record Image']
+            ,
+                "types": ['text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'real', 'real', 'text', 'text', 'real', 'text', 'text', 'text', 'text', 'real', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'real', 'real', 'real', 'text', 'text', 'text', 'text', 'real', 'text']
+            }
         table_name = 'ftable1'
         n_Q = 100000 if args.infer_loop else 1
-        print(data_table)
-        for i in range(n_Q):
-            if n_Q > 1:
-                nlu1 = input('Type question: ')
+#         print(data_table)
+        while True:
+            print("===============================================================================")
+            nlu1 = input()
             pr_sql_i, pr_ans = infer(
                 nlp,
                 nlu1,
@@ -795,3 +814,4 @@ if __name__ == '__main__':
                 num_target_layers=args.num_target_layers,
                 beam_size=1, show_table=False, show_answer_only=False
             )
+            print("=================================****************END**********************==============================================")

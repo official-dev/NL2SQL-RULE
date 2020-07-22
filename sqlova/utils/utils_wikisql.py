@@ -782,12 +782,12 @@ def get_bert_output(model_bert, tokenizer, nlu_t, hds, max_seq_length):
     all_segment_ids = torch.tensor(segment_ids, dtype=torch.long).to(device)
 
     # 4. Generate BERT output.
-    all_encoder_layer, pooled_output = model_bert(all_input_ids, all_segment_ids, all_input_mask)
+    all_encoder_layer, pooled_output = model_bert(all_input_ids, attention_mask=all_input_mask, output_hidden_states=True)
 
     # 5. generate l_hpu from i_hds
     l_hpu = gen_l_hpu(i_hds)
 
-    return all_encoder_layer, pooled_output, tokens, i_nlu, i_hds, \
+    return pooled_output, all_encoder_layer, tokens, i_nlu, i_hds, \
            l_n, l_hpu, l_hs, \
            nlu_tt, t_to_tt_idx, tt_to_t_idx
 
@@ -905,6 +905,8 @@ def get_wemb_n(i_nlu, l_n, hS, num_hidden_layers, all_encoder_layer, num_out_lay
     bS = len(l_n)
     l_n_max = max(l_n)
     wemb_n = torch.zeros([bS, l_n_max, hS * num_out_layers_n]).to(device)
+#     print(all_encoder_layer.shape)
+    print(bS)
     for b in range(bS):
         # [B, max_len, dim]
         # Fill zero for non-exist part.
@@ -1387,7 +1389,7 @@ def find_sub_list(sl, l):
 
     return results
 
-def get_g_wvi_bert(nlu, nlu_t, wh_to_wp_index, sql_i, sql_t, tokenizer, nlu_wp_t):
+def ⁄(nlu, nlu_t, wh_to_wp_index, sql_i, sql_t, tokenizer, nlu_wp_t):
     """
     Generate SQuAD style start and end index of wv in nlu. Index is for of after WordPiece tokenization.
 

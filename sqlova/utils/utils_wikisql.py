@@ -1389,7 +1389,7 @@ def find_sub_list(sl, l):
 
     return results
 
-def ⁄(nlu, nlu_t, wh_to_wp_index, sql_i, sql_t, tokenizer, nlu_wp_t):
+def get_g_wvi_bert(nlu, nlu_t, wh_to_wp_index, sql_i, sql_t, tokenizer, nlu_wp_t):
     """
     Generate SQuAD style start and end index of wv in nlu. Index is for of after WordPiece tokenization.
 

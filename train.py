@@ -23,7 +23,7 @@ from sqlnet.dbengine import DBEngine
 from sqlova.model.nl2sql.wikisql_models import *
 from sqlova.utils.utils import load_jsonl
 from sqlova.utils.utils_wikisql import *
-
+import stanza
 # import torchvision.datasets as dsets
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -583,23 +583,17 @@ def test(data_loader, data_table, model, model_bert, bert_config, tokenizer,
     return acc, results, cnt_list
 
 
-def tokenize_corenlp(client, nlu1):
-    nlu1_tok = []
-    for sentence in client.annotate(nlu1):
-        for tok in sentence:
-            nlu1_tok.append(tok.originalText)
-    return nlu1_tok
+def tokenize_corenlp(nlp, nlu1):
+    doc = nlp(nlu1)
+    return [tok.text for i in doc.sentences for tok in i.tokens]
 
 
-def tokenize_corenlp_direct_version(client, nlu1):
-    nlu1_tok = []
-    for sentence in client.annotate(nlu1).sentence:
-        for tok in sentence.token:
-            nlu1_tok.append(tok.originalText)
-    return nlu1_tok
+def tokenize_corenlp_direct_version(nlp, nlu1):
+    doc = nlp(nlu1)
+    return [tok.text for i in doc.sentences for tok in i.tokens]
 
 
-def infer(nlu1,
+def infer(nlp, nlu1,
           table_name, data_table, path_db, db_name,
           model, model_bert, bert_config, max_seq_length, num_target_layers,
           beam_size=4, show_table=False, show_answer_only=False):
@@ -611,7 +605,7 @@ def infer(nlu1,
     # Get inputs
     nlu = [nlu1]
     # nlu_t1 = tokenize_corenlp(client, nlu1)
-    nlu_t1 = tokenize_corenlp_direct_version(client, nlu1)
+    nlu_t1 = tokenize_corenlp_direct_version(nlp, nlu1)
     nlu_t = [nlu_t1]
 
     tb1 = data_table[0]
@@ -778,9 +772,9 @@ if __name__ == '__main__':
         # from stanza.nlp.corenlp import CoreNLPClient
         # client = CoreNLPClient(server='http://localhost:9000', default_annotators='ssplit,tokenize'.split(','))
 
-        import corenlp
 
-        client = corenlp.CoreNLPClient(annotators='ssplit,tokenize'.split(','))
+
+        nlp =  stanza.Pipeline(lang='en', processors='tokenize')
 
         nlu1 = "Which company have more than 100 employees?"
         path_db = './data_and_model'
@@ -788,10 +782,12 @@ if __name__ == '__main__':
         data_table = load_jsonl('./data_and_model/ctable.tables.jsonl')
         table_name = 'ftable1'
         n_Q = 100000 if args.infer_loop else 1
+        print(data_table)
         for i in range(n_Q):
             if n_Q > 1:
                 nlu1 = input('Type question: ')
             pr_sql_i, pr_ans = infer(
+                nlp,
                 nlu1,
                 table_name, data_table, path_db, db_name,
                 model, model_bert, bert_config, max_seq_length=args.max_seq_length,

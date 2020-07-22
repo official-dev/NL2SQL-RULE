@@ -17,7 +17,7 @@ import torch.nn.functional as F
 from matplotlib.pylab import *
 
 # BERT
-from transformers import DistilBertConfig, DistilBertTokenizer, DistilBertModel
+from transformers import DistilBertConfig, DistilBertTokenizer, DistilBertForSequenceClassification
 
 from sqlnet.dbengine import DBEngine
 from sqlova.model.nl2sql.wikisql_models import *
@@ -30,18 +30,18 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def construct_hyper_param(parser):
-    parser.add_argument("--do_train", default=True)
-    parser.add_argument('--do_infer', default=False)
+    parser.add_argument("--do_train", default=False)
+    parser.add_argument('--do_infer', default=True)
     parser.add_argument('--infer_loop', default=False)
 
-    parser.add_argument("--trained", default=False)
+    parser.add_argument("--trained", default=True)
 
     parser.add_argument('--fine_tune',
                         default=True,
                         help="If present, BERT is trained.")
 
-    parser.add_argument('--tepoch', default=200, type=int)
-    parser.add_argument("--bS", default=8, type=int,
+    parser.add_argument('--tepoch', default=3, type=int)
+    parser.add_argument("--bS", default=32, type=int,
                         help="Batch size")
     parser.add_argument("--accumulate_gradients", default=1, type=int,
                         help="The number of accumulation of backpropagation to effectivly increase the batch size.")
@@ -121,17 +121,18 @@ def get_bert(BERT_PT_PATH, bert_type, do_lower_case, no_pretraining):
     vocab_file = os.path.join(BERT_PT_PATH, f'vocab_{bert_type}.txt')
     init_checkpoint = os.path.join(BERT_PT_PATH, f'pytorch_model_{bert_type}.bin')
 
-    distil_bert_config = DistilBertConfig.from_json_file(bert_config_file)
-    tokenizer = DistilBertTokenizer(distil_bert_config, do_lower_case=do_lower_case)
-    distil_model_bert = DistilBertModel(distil_bert_config)
-    if no_pretraining:
-        pass
-    else:
-        distil_model_bert.load_state_dict(torch.load(init_checkpoint, map_location='cpu'))
-        print("Load pre-trained parameters.")
-    distil_model_bert.to(device)
+    config = DistilBertConfig.from_pretrained('distilbert-base-uncased', output_hidden_states=True)
+    model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', config = config)
+    tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased',  do_lower_case=do_lower_case)
+#     distil_model_bert = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', output_hidden_states=True)
+#     if no_pretraining:
+#         pass
+#     else:
+#         distil_model_bert.load_state_dict(torch.load(init_checkpoint, map_location='cpu'))
+#         print("Load pre-trained parameters.")
+    model.to(device)
 
-    return distil_model_bert, tokenizer, distil_bert_config
+    return model, tokenizer, config
 
 
 def get_opt(model, model_bert, fine_tune):
